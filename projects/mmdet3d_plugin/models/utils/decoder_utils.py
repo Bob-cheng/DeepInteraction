@@ -11,6 +11,7 @@ import torch.nn.functional as F
 from torch.nn.parameter import Parameter
 from torch.nn import Linear
 from torch.nn.init import xavier_uniform_, constant_, xavier_normal_
+import numpy as np
 
 class PositionEmbeddingLearned(nn.Module):
     """
@@ -678,7 +679,8 @@ class ImageRCNNBlock(nn.Module):
             )
         on_the_image_mask = torch.ones([batch_size, self.num_proposals]).to(query_pos_3d.device) * -1
         for sample_idx in range(batch_size):
-            lidar2img_rt = query_pos_3d.new_tensor(img_metas[sample_idx]['lidar2img'])
+            # lidar2img_rt = query_pos_3d.new_tensor(img_metas[sample_idx]['lidar2img'])
+            lidar2img_rt = query_pos_3d.new_tensor(np.array(img_metas[sample_idx]['lidar2img']))
             img_scale_factor = (query_pos_3d.new_tensor([1.0, 1.0]))
             img_flip = img_metas[sample_idx]['flip'] if 'flip' in img_metas[sample_idx].keys() else False
             img_crop_offset = (

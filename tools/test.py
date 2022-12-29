@@ -2,6 +2,9 @@
 import argparse
 import mmcv
 import os
+import sys
+sys.path.append('.') # DeepInteraction Directory
+
 import torch
 import warnings
 from mmcv import Config, DictAction
@@ -213,7 +216,8 @@ def main():
 
     if not distributed:
         model = MMDataParallel(model, device_ids=[0])
-        outputs = single_gpu_test(model, data_loader, args.show, args.show_dir)
+        # outputs = single_gpu_test(model, data_loader, args.show, args.show_dir)
+        outputs = single_gpu_test(model, data_loader)
     else:
         model = MMDistributedDataParallel(
             model.cuda(),

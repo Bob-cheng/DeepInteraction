@@ -10,8 +10,8 @@ voxel_size = [0.075, 0.075, 0.2]
 out_size_factor = 8
 pillar_size = [voxel_size[0]*out_size_factor, voxel_size[1]*out_size_factor, point_cloud_range[5]-point_cloud_range[2]]
 evaluation = dict(interval=1)
-dataset_type = 'NuScenesDataset'
-data_root = 'data/nuscenes/'
+dataset_type = 'NuScenesDataset_v2'
+data_root = 'data/nuscenes/mini/'
 input_modality = dict(
     use_lidar=True,
     use_camera=True,
@@ -23,25 +23,25 @@ num_views = 6
 img_norm_cfg = dict(mean=[123.675, 116.28, 103.53], std=[58.395, 57.12, 57.375], to_rgb=True)
 train_pipeline = [
     dict(
-        type='LoadPointsFromFile',
+        type='LoadPointsFromFile_v2',
         coord_type='LIDAR',
         load_dim=5,
         use_dim=[0, 1, 2, 3, 4],
     ),
     dict(
-        type='LoadPointsFromMultiSweeps',
+        type='LoadPointsFromMultiSweeps_v2',
         sweeps_num=10,
         use_dim=[0, 1, 2, 3, 4],
     ),
     dict(type='LoadAnnotations3D', with_bbox_3d=True, with_label_3d=True),
-    dict(type='LoadMultiViewImageFromFiles', to_float32=True),
+    dict(type='LoadMultiViewImageFromFiles_v2', to_float32=True),
     dict(
-        type='GlobalRotScaleTrans',
+        type='GlobalRotScaleTrans_v2',
         rot_range=[-0.3925 * 2, 0.3925 * 2],
         scale_ratio_range=[0.9, 1.1],
         translation_std=[0.5, 0.5, 0.5]),
     dict(
-        type='RandomFlip3D',
+        type='RandomFlip3D_v2',
         sync_2d=True,
         flip_ratio_bev_horizontal=0.5,
         flip_ratio_bev_vertical=0.5),
@@ -52,44 +52,123 @@ train_pipeline = [
     dict(type='ScaleImageMultiViewImage', scales=img_scale),
     dict(type='NormalizeMultiviewImage', **img_norm_cfg),
     dict(type='PadMultiViewImage', size_divisor=32),
-    dict(type='DefaultFormatBundle3D', class_names=class_names),
-    dict(type='Collect3D', keys=['points', 'img', 'gt_bboxes_3d', 'gt_labels_3d'])
+    dict(type='DefaultFormatBundle3D_v2', class_names=class_names),
+    dict(type='Collect3D_v2', keys=['points', 'img', 'gt_bboxes_3d', 'gt_labels_3d'])
 ]
+
+# reduce_beams=32
+# load_dim=5
+# use_dim=5
+# load_augmented=None
+# point_cloud_range=[-51.2, -51.2, -5.0, 51.2, 51.2, 3.0]
+# voxel_size=[0.1, 0.1, 0.2]
+# image_size=[256, 704]
+
+# augment2d={
+#   "resize": [[0.38, 0.55], [0.48, 0.48]],
+#   "rotate": [-5.4, 5.4],
+#   "gridmask": {
+#     "prob": 0.0,
+#     "fixed_prob": True
+#   }
+# }
+
+# augment3d={
+#   "scale": [0.9, 1.1],
+#   "rotate": [-0.78539816, 0.78539816],
+#   "translate": 0.5
+# }
+
+# test_pipeline = [{'to_float32': True, 'type': 'LoadMultiViewImageFromFiles'},
+#                  {'coord_type': 'LIDAR',
+#                  'load_augmented': load_augmented,
+#                   'load_dim': load_dim,
+#                   'reduce_beams': reduce_beams,
+#                   'type': 'LoadPointsFromFile',
+#                   'use_dim': use_dim},
+#                  {'load_augmented': load_augmented,
+#                  'load_dim': load_dim,
+#                   'pad_empty_sweeps': True,
+#                   'reduce_beams': reduce_beams,
+#                   'remove_close': True,
+#                   'sweeps_num': 9,
+#                   'type': 'LoadPointsFromMultiSweeps',
+#                   'use_dim': use_dim},
+#                  {'type': 'LoadAnnotations3D',
+#                  'with_attr_label': False,
+#                   'with_bbox_3d': True,
+#                   'with_label_3d': True},
+#                  {'bot_pct_lim': [0.0, 0.0],
+#                  'final_dim': image_size,
+#                   'is_train': False,
+#                   'rand_flip': False,
+#                   'resize_lim': augment2d.resize[1],
+#                   'rot_lim': [0.0, 0.0],
+#                   'type': 'ImageAug3D'},
+#                  {'is_train': False,
+#                  'resize_lim': [1.0, 1.0],
+#                   'rot_lim': [0.0, 0.0],
+#                   'trans_lim': 0.0,
+#                   'type': 'GlobalRotScaleTrans'},
+#                  {'point_cloud_range': point_cloud_range,
+#                  'type': 'PointsRangeFilter'},
+#                  {'mean': [0.485, 0.456, 0.406],
+#                  'std': [0.229, 0.224, 0.225],
+#                   'type': 'ImageNormalize'},
+#                  {'classes': class_names,
+#                  'type': 'DefaultFormatBundle3D'},
+#                  {'keys': ['img',
+#                            'points',
+#                            'gt_bboxes_3d',
+#                            'gt_labels_3d',
+#                            'gt_masks_bev'],
+#                  'meta_keys': ['camera_intrinsics',
+#                                'camera2ego',
+#                                'lidar2ego',
+#                                'lidar2camera',
+#                                'camera2lidar',
+#                                'lidar2image',
+#                                'img_aug_matrix',
+#                                'lidar_aug_matrix'],
+#                   'type': 'Collect3D'}]
+
 test_pipeline = [
     dict(
-        type='LoadPointsFromFile',
+        type='LoadPointsFromFile_v2',
         coord_type='LIDAR',
         load_dim=5,
         use_dim=[0, 1, 2, 3, 4],
     ),
     dict(
-        type='LoadPointsFromMultiSweeps',
+        type='LoadPointsFromMultiSweeps_v2',
         sweeps_num=10,
         use_dim=[0, 1, 2, 3, 4],
     ),
-    dict(type='LoadMultiViewImageFromFiles', to_float32=True),
+    dict(type='LoadMultiViewImageFromFiles_v2', to_float32=True),
     dict(
-        type='MultiScaleFlipAug3D',
+        type='MultiScaleFlipAug3D', # also v2 proj
         img_scale=img_scale,
         pts_scale_ratio=1,
         flip=False,
         transforms=[
             dict(
-                type='GlobalRotScaleTrans',
+                type='GlobalRotScaleTrans_v2',
                 rot_range=[0, 0],
                 scale_ratio_range=[1.0, 1.0],
                 translation_std=[0, 0, 0]),
-            dict(type='RandomFlip3D'),
-            dict(type='ScaleImageMultiViewImage', scales=img_scale),
-            dict(type='NormalizeMultiviewImage', **img_norm_cfg),
-            dict(type='PadMultiViewImage', size_divisor=32),
+            dict(type='RandomFlip3D_v2'),
+            dict(type='ScaleImageMultiViewImage', scales=img_scale), # also v2 proj
+            dict(type='NormalizeMultiviewImage', **img_norm_cfg), # also v2 proj
+            dict(type='PadMultiViewImage', size_divisor=32), # also v2 proj
             dict(
-                type='DefaultFormatBundle3D',
+                type='DefaultFormatBundle3D_v2',
                 class_names=class_names,
                 with_label=False),
-            dict(type='Collect3D', keys=['points', 'img'])
+            dict(type='Collect3D_v2', keys=['points', 'img'])
         ])
 ]
+
+
 data = dict(
     samples_per_gpu=2,
     workers_per_gpu=4,
@@ -125,6 +204,7 @@ data = dict(
         modality=input_modality,
         test_mode=True,
         box_type_3d='LiDAR'))
+
 model = dict(
     type='DeepInteraction',
     freeze_img=True,

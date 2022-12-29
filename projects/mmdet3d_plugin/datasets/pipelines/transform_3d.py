@@ -11,7 +11,8 @@ from mmdet3d.core.bbox import (CameraInstance3DBoxes, DepthInstance3DBoxes,
 from mmdet.datasets.builder import PIPELINES
 from mmdet.datasets.pipelines import RandomFlip
 from mmdet3d.datasets.builder import OBJECTSAMPLERS
-from mmdet3d.datasets.pipelines.data_augment_utils import noise_per_object_v3_
+# from mmdet3d.datasets.pipelines.data_augment_utils import noise_per_object_v3_
+from mmdet3d.datasets.pipelines.utils import noise_per_object_v3_
 from mmdet.datasets.pipelines import LoadAnnotations, LoadImageFromFile
 
 @PIPELINES.register_module()
