@@ -1,5 +1,7 @@
 plugin=True
 plugin_dir='projects/mmdet3d_plugin/'
+seed=17
+deterministic=True
 
 point_cloud_range = [-54.0, -54.0, -5.0, 54.0, 54.0, 3.0]
 class_names = [
@@ -144,6 +146,7 @@ test_pipeline = [
         sweeps_num=10,
         use_dim=[0, 1, 2, 3, 4],
     ),
+    dict(type='LoadAnnotations3D', with_bbox_3d=True, with_label_3d=True),
     dict(type='LoadMultiViewImageFromFiles_v2', to_float32=True),
     dict(
         type='MultiScaleFlipAug3D', # also v2 proj
@@ -164,7 +167,7 @@ test_pipeline = [
                 type='DefaultFormatBundle3D_v2',
                 class_names=class_names,
                 with_label=False),
-            dict(type='Collect3D_v2', keys=['points', 'img'])
+            dict(type='Collect3D_v2', keys=['points', 'img', 'gt_bboxes_3d', 'gt_labels_3d'])
         ])
 ]
 

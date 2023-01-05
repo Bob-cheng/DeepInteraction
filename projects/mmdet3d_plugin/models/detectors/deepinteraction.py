@@ -233,25 +233,31 @@ class DeepInteraction(MVXTwoStageDetector):
         losses = self.pts_bbox_head.loss(*loss_inputs)
         return losses
 
-    def simple_test_pts(self, x, x_img, img_metas, rescale=False):
+    def simple_test_pts(self, x, x_img, img_metas, rescale=False, **kwargs):
         """Test function of point cloud branch."""
         outs = self.pts_bbox_head(x, x_img, img_metas)
         bbox_list = self.pts_bbox_head.get_bboxes(
-            outs, img_metas, rescale=rescale)
-        bbox_results = [
-            bbox3d2result(bboxes, scores, labels)
-            for bboxes, scores, labels in bbox_list
-        ]
+            outs, img_metas, rescale=rescale, **kwargs)
+
+        bbox_results = []
+        for bboxes, scores, labels, obj_gt_indices in bbox_list:
+            result_dict = bbox3d2result(bboxes, scores, labels)
+            result_dict['obj_gt_indices'] = obj_gt_indices.cpu() if obj_gt_indices is not None else None
+            bbox_results.append(result_dict)
+        # bbox_results = [
+        #     bbox3d2result(bboxes, scores, labels)
+        #     for bboxes, scores, labels, obj_gt_indices in bbox_list
+        # ]
         return bbox_results
 
-    def simple_test(self, points, img_metas, img=None, rescale=False):
+    def simple_test(self, points, img_metas, img=None, rescale=False, **kwargs):
         """Test function without augmentaiton."""
         img_feats, pts_feats = self.extract_feat(
             points, img=img, img_metas=img_metas)
 
         bbox_list = [dict() for i in range(len(img_metas))]
         bbox_pts = self.simple_test_pts(
-            pts_feats, img_feats, img_metas, rescale=rescale)
+            pts_feats, img_feats, img_metas, rescale=rescale, **kwargs)
         for result_dict, pts_bbox in zip(bbox_list, bbox_pts):
             result_dict['pts_bbox'] = pts_bbox
         return bbox_list

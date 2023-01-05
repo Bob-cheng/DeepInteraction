@@ -364,7 +364,8 @@ class DeepInteractionDecoder(nn.Module):
         matched_ious = np.mean(res_tuple[6])
         if self.initialize_by_heatmap:
             heatmap = torch.cat(res_tuple[7], dim=0)
-            return labels, label_weights, bbox_targets, bbox_weights, ious, num_pos, matched_ious, heatmap
+            obj_gt_indices = torch.cat(res_tuple[8], dim=0)
+            return labels, label_weights, bbox_targets, bbox_weights, ious, num_pos, matched_ious, heatmap, obj_gt_indices
         else:
             return labels, label_weights, bbox_targets, bbox_weights, ious, num_pos, matched_ious
 
@@ -440,6 +441,7 @@ class DeepInteractionDecoder(nn.Module):
         ious = torch.clamp(ious, min=0.0, max=1.0)
         labels = bboxes_tensor.new_zeros(num_proposals, dtype=torch.long)
         label_weights = bboxes_tensor.new_zeros(num_proposals, dtype=torch.long)
+        obj_gt_indices = -1 * bboxes_tensor.new_ones(num_proposals, dtype=torch.long)
 
         if gt_labels_3d is not None:  # default label is -1
             labels += self.num_classes
@@ -455,6 +457,7 @@ class DeepInteractionDecoder(nn.Module):
                 labels[pos_inds] = 1
             else:
                 labels[pos_inds] = gt_labels_3d[sampling_result.pos_assigned_gt_inds]
+                obj_gt_indices[pos_inds] = sampling_result.pos_assigned_gt_inds
             if self.train_cfg.pos_weight <= 0:
                 label_weights[pos_inds] = 1.0
             else:
@@ -490,7 +493,7 @@ class DeepInteractionDecoder(nn.Module):
                     draw_heatmap_gaussian(heatmap[gt_labels_3d[idx]], center_int, radius)
 
             mean_iou = ious[pos_inds].sum() / max(len(pos_inds), 1)
-            return labels[None], label_weights[None], bbox_targets[None], bbox_weights[None], ious[None], int(pos_inds.shape[0]), float(mean_iou), heatmap[None]
+            return labels[None], label_weights[None], bbox_targets[None], bbox_weights[None], ious[None], int(pos_inds.shape[0]), float(mean_iou), heatmap[None], obj_gt_indices
 
         else:
             mean_iou = ious[pos_inds].sum() / max(len(pos_inds), 1)
@@ -511,7 +514,7 @@ class DeepInteractionDecoder(nn.Module):
         """
 
         if self.initialize_by_heatmap:
-            labels, label_weights, bbox_targets, bbox_weights, ious, num_pos, matched_ious, heatmap = self.get_targets(gt_bboxes_3d, gt_labels_3d, preds_dicts[0])
+            labels, label_weights, bbox_targets, bbox_weights, ious, num_pos, matched_ious, heatmap, obj_gt_indices = self.get_targets(gt_bboxes_3d, gt_labels_3d, preds_dicts[0])
         else:
             labels, label_weights, bbox_targets, bbox_weights, ious, num_pos, matched_ious = self.get_targets(gt_bboxes_3d, gt_labels_3d, preds_dicts[0])
 
@@ -561,7 +564,15 @@ class DeepInteractionDecoder(nn.Module):
 
         return loss_dict
 
-    def get_bboxes(self, preds_dicts, img_metas, img=None, rescale=False, for_roi=False):
+    def get_bboxes(self, 
+        preds_dicts, 
+        img_metas, 
+        img=None, 
+        rescale=False, 
+        for_roi=False,
+        gt_bboxes_3d=None,
+        gt_labels_3d=None
+        ):
         """Generate bboxes from bbox head predictions.
 
         Args:
@@ -570,6 +581,11 @@ class DeepInteractionDecoder(nn.Module):
         Returns:
             list[list[dict]]: Decoded bbox, scores and labels for each layer & each batch
         """
+        if gt_bboxes_3d is not None and gt_labels_3d is not None:
+            obj_gt_indices = self.get_targets(gt_bboxes_3d[0], gt_labels_3d[0], preds_dicts[0])[-1]
+            obj_gt_indices = obj_gt_indices[..., -self.num_proposals:]
+        else:
+            obj_gt_indices = None
         rets = []
         for layer_id, preds_dict in enumerate(preds_dicts):
             batch_size = preds_dict[0]['heatmap'].shape[0]
@@ -585,7 +601,15 @@ class DeepInteractionDecoder(nn.Module):
             if 'vel' in preds_dict[0]:
                 batch_vel = preds_dict[0]['vel'][..., -self.num_proposals:]
 
-            temp = self.bbox_coder.decode(batch_score, batch_rot, batch_dim, batch_center, batch_height, batch_vel, filter=True)
+            temp = self.bbox_coder.decode(
+                batch_score, 
+                batch_rot, 
+                batch_dim, 
+                batch_center, 
+                batch_height, 
+                batch_vel, 
+                filter=True if obj_gt_indices is None else False,
+            )
 
             if self.test_cfg['dataset'] == 'nuScenes':
                 self.tasks = [
@@ -605,6 +629,8 @@ class DeepInteractionDecoder(nn.Module):
                 boxes3d = temp[i]['bboxes']
                 scores = temp[i]['scores']
                 labels = temp[i]['labels']
+                if obj_gt_indices is not None:
+                    assert len(labels) == len(obj_gt_indices)
                 ## adopt circle nms for different categories
                 if self.test_cfg['nms_type'] != None:
                     keep_mask = torch.zeros_like(scores)
@@ -638,9 +664,14 @@ class DeepInteractionDecoder(nn.Module):
                             keep_indices = torch.where(task_mask != 0)[0][task_keep_indices]
                             keep_mask[keep_indices] = 1
                     keep_mask = keep_mask.bool()
-                    ret = dict(bboxes=boxes3d[keep_mask], scores=scores[keep_mask], labels=labels[keep_mask])
+                    ret = dict(
+                        bboxes=boxes3d[keep_mask], 
+                        scores=scores[keep_mask], 
+                        labels=labels[keep_mask],
+                        obj_gt_indices=obj_gt_indices[keep_mask] if obj_gt_indices is not None else None
+                    )
                 else:  # no nms
-                    ret = dict(bboxes=boxes3d, scores=scores, labels=labels)
+                    ret = dict(bboxes=boxes3d, scores=scores, labels=labels, obj_gt_indices=obj_gt_indices)
                 ret_layer.append(ret)
             rets.append(ret_layer)
         assert len(rets) == 1
@@ -648,6 +679,7 @@ class DeepInteractionDecoder(nn.Module):
         res = [[
             img_metas[0]['box_type_3d'](rets[0][0]['bboxes'], box_dim=rets[0][0]['bboxes'].shape[-1]),
             rets[0][0]['scores'],
-            rets[0][0]['labels'].int()
+            rets[0][0]['labels'].int(),
+            rets[0][0]["obj_gt_indices"]
         ]]
         return res
