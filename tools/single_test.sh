@@ -9,6 +9,8 @@ python $(dirname "$0")/test.py $CONFIG $CHECKPOINT ${@:3}
 # tools/single_test.sh projects/configs/nuscenes/Fusion_0075_refactor.py /home/cheng443/FusionAttack/DeepInteraction/pretrained/Fusion_0075_refactor.pth --eval=bbox
 # python tools/test.py projects/configs/nuscenes/Fusion_0075_refactor.py /home/cheng443/FusionAttack/DeepInteraction/pretrained/Fusion_0075_refactor.pth --eval=bbox
 
+# python tools/test.py projects/configs/nuscenes/Fusion_0075_refactor.py pretrained/Fusion_0075_refactor.pth --eval=bbox
+
 # Evaluating bboxes of pts_bbox
 # mAP: 0.5965                                                                                                 
 # mATE: 0.4027
