@@ -161,7 +161,8 @@ class DeepInteractionDecoder(nn.Module):
 
     def create_2D_grid(self, x_size, y_size):
         meshgrid = [[0, x_size - 1, x_size], [0, y_size - 1, y_size]]
-        batch_y, batch_x = torch.meshgrid(*[torch.linspace(it[0], it[1], it[2]) for it in meshgrid])
+        # batch_y, batch_x = torch.meshgrid(*[torch.linspace(it[0], it[1], it[2]) for it in meshgrid])
+        batch_y, batch_x = torch.meshgrid(*[torch.linspace(it[0], it[1], it[2]) for it in meshgrid], indexing="ij")
         batch_x = batch_x + 0.5
         batch_y = batch_y + 0.5
         coord_base = torch.cat([batch_x[None], batch_y[None]], dim=0)[None]

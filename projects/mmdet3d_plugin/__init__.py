@@ -6,5 +6,6 @@ from .models.detectors.deepinteraction import DeepInteraction
 # from .core.bbox.coders.transfusion_bbox_coder import TransFusionBBoxCoder
 from .core.hook.fading import Fading
 from .datasets.pipelines import (
-  PhotoMetricDistortionMultiViewImage, PadMultiViewImage, 
-  NormalizeMultiviewImage, ScaleImageMultiViewImage)
+  # PhotoMetricDistortionMultiViewImage, PadMultiViewImage, 
+  # NormalizeMultiviewImage, 
+  ScaleImageMultiViewImage)

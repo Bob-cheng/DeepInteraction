@@ -265,7 +265,8 @@ class MMRI_I2P(nn.Module):
                  & (xy_cams[..., 1:2] > -1.0) 
                  & (xy_cams[..., 1:2] < 1.0))
             mask = torch.nan_to_num(mask)
-            sampled_feat = F.grid_sample(img_feat[b],xy_cams.unsqueeze(-2)).squeeze(-1).permute(2,0,1)
+            # sampled_feat = F.grid_sample(img_feat[b],xy_cams.unsqueeze(-2)).squeeze(-1).permute(2,0,1)
+            sampled_feat = F.grid_sample(img_feat[b],xy_cams.unsqueeze(-2), align_corners=False).squeeze(-1).permute(2,0,1)
             sampled_feat = sampled_feat.view(num_voxels,max_points,num_cam,self.img_channels)
             mask = mask.permute(1,0,2).view(num_voxels,max_points,num_cam,1)
 
