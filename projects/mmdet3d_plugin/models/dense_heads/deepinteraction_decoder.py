@@ -414,7 +414,8 @@ class DeepInteractionDecoder(nn.Module):
         for idx_layer in range(num_layer):
             bboxes_tensor_layer = bboxes_tensor[self.num_proposals * idx_layer:self.num_proposals * (idx_layer + 1), :]
             score_layer = score[..., self.num_proposals * idx_layer:self.num_proposals * (idx_layer + 1)]
-
+            # if hasattr(self, 'is_getting_bboxes') and self.is_getting_bboxes:
+            #     self.bbox_assigner.cls_cost.weight = 0.00001
             if self.train_cfg.assigner.type == 'HungarianAssigner3D':
                 assign_result = self.bbox_assigner.assign(bboxes_tensor_layer, gt_bboxes_tensor, gt_labels_3d, score_layer, self.train_cfg)
             elif self.train_cfg.assigner.type == 'HeuristicAssigner':
@@ -514,7 +515,7 @@ class DeepInteractionDecoder(nn.Module):
         Returns:
             dict[str:torch.Tensor]: Loss of heatmap and bbox of each task.
         """
-
+        self.is_getting_bboxes = False
         if self.initialize_by_heatmap:
             labels, label_weights, bbox_targets, bbox_weights, ious, num_pos, matched_ious, heatmap, obj_gt_indices = self.get_targets(gt_bboxes_3d, gt_labels_3d, preds_dicts[0])
         else:
@@ -583,6 +584,7 @@ class DeepInteractionDecoder(nn.Module):
         Returns:
             list[list[dict]]: Decoded bbox, scores and labels for each layer & each batch
         """
+        self.is_getting_bboxes = True
         if gt_bboxes_3d is not None and gt_labels_3d is not None:
             obj_gt_indices = self.get_targets(gt_bboxes_3d[0], gt_labels_3d[0], preds_dicts[0])[-1]
             obj_gt_indices = obj_gt_indices[..., -self.num_proposals:]
