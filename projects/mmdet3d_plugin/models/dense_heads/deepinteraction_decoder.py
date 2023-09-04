@@ -574,7 +574,8 @@ class DeepInteractionDecoder(nn.Module):
         rescale=False, 
         for_roi=False,
         gt_bboxes_3d=None,
-        gt_labels_3d=None
+        gt_labels_3d=None,
+        **kwargs
         ):
         """Generate bboxes from bbox head predictions.
 
